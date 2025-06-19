@@ -11,7 +11,7 @@
     #targetLabel { font-size: 20px; margin-bottom: 10px; }
     #targetFace { font-size: 48px; border: 2px solid #000; border-radius: 8px; display: inline-block; padding: 10px; background: white; }
     #message { font-size: 18px; margin-top: 20px; height: 30px; color: #d33; }
-    #game { flex: 1; display: grid; justify-content: center; align-content: start; gap: 10px; padding: 20px; box-sizing: border-box; overflow-y: auto; position: relative; }
+    #game { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); justify-content: center; align-content: start; gap: 10px; padding: 20px; box-sizing: border-box; position: relative; max-width: 800px; max-height: 600px; margin: 0 auto; background: #fff; border-left: 1px solid #ccc; overflow: hidden; }
     .face { font-size: 32px; cursor: pointer; transition: transform 0.3s; user-select: none; position: relative; }
     .moving { position: absolute; }
     .rotating { animation: spin 1s linear infinite; }
@@ -39,16 +39,20 @@ let level = 1;
 let interval;
 let targetEmoji = '';
 let timeExpired = false;
+let bonusTimeNext = 0;
 
 function getLevelData(lv) {
   let faceCount = 25 + (lv - 1) * 2;
-  let time = 20 - Math.floor((lv - 1) / 5) * 1;
-  if (time < 5) time = 5;
+  let baseTime = 20;
+  if (lv >= 10) baseTime -= (lv - 9) * 0.1;
+  if (baseTime < 5) baseTime = 5;
+  baseTime += bonusTimeNext;
+  bonusTimeNext = 0;
   let move = lv >= 10;
   let rotate = lv >= 20;
   let faceTypes = 4 + Math.floor(lv / 10);
   if (faceTypes > allFaces.length) faceTypes = allFaces.length;
-  return { faceCount, time, move, rotate, faceTypes };
+  return { faceCount, time: baseTime, move, rotate, faceTypes };
 }
 
 function shuffle(array) {
@@ -70,7 +74,6 @@ function startLevel() {
   document.getElementById('level').textContent = level;
   game.innerHTML = '';
   msg.textContent = '';
-  game.style.gridTemplateColumns = `repeat(auto-fill, minmax(40px, 1fr))`;
   timeExpired = false;
 
   const others = faceSet.filter(f => f !== targetEmoji);
@@ -86,8 +89,8 @@ function startLevel() {
     face.className = 'face';
     if (levelInfo.move) {
       face.classList.add('moving');
-      face.style.left = `${Math.random() * 90}vw`;
-      face.style.top = `${Math.random() * 70}vh`;
+      face.style.left = `${Math.random() * 90}%`;
+      face.style.top = `${Math.random() * 90}%`;
       animateMove(face);
     }
     if (levelInfo.rotate && Math.random() < 0.2) {
@@ -100,6 +103,9 @@ function startLevel() {
         } else {
           msg.textContent = '正解！🎉';
           clearInterval(interval);
+          if (timeLeft >= levelInfo.time - 2) {
+            bonusTimeNext = 1; // 次のレベルに+1秒
+          }
           setTimeout(() => {
             level++;
             startLevel();
@@ -128,15 +134,15 @@ function startLevel() {
 function animateMove(el) {
   let x = parseFloat(el.style.left);
   let y = parseFloat(el.style.top);
-  let dx = (Math.random() * 2 - 1) * 0.3;
-  let dy = (Math.random() * 2 - 1) * 0.3;
+  let dx = (Math.random() * 2 - 1) * 0.15;
+  let dy = (Math.random() * 2 - 1) * 0.15;
   function move() {
     x += dx;
     y += dy;
-    if (x < 0 || x > 95) dx = -dx;
-    if (y < 0 || y > 85) dy = -dy;
-    el.style.left = `${x}vw`;
-    el.style.top = `${y}vh`;
+    if (x < 0 || x > 90) dx = -dx;
+    if (y < 0 || y > 90) dy = -dy;
+    el.style.left = `${x}%`;
+    el.style.top = `${y}%`;
     requestAnimationFrame(move);
   }
   move();
