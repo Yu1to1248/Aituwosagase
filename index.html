@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>あいつをさがせ！</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; background: #f5f5f5; }
+    #header { padding: 10px; font-size: 20px; text-align: center; background: #222; color: white; }
+    #container { display: flex; flex-direction: row; height: calc(100vh - 50px); }
+    #infoPanel { width: 200px; background: #eee; padding: 20px; box-sizing: border-box; text-align: center; }
+    #targetLabel { font-size: 20px; margin-bottom: 10px; }
+    #targetFace { font-size: 48px; border: 2px solid #000; border-radius: 8px; display: inline-block; padding: 10px; background: white; }
+    #message { font-size: 18px; margin-top: 20px; height: 30px; color: #d33; }
+    #game { flex: 1; display: grid; justify-content: center; align-content: start; gap: 10px; padding: 20px; box-sizing: border-box; overflow-y: auto; position: relative; }
+    .face { font-size: 32px; cursor: pointer; transition: transform 0.3s; user-select: none; position: relative; }
+    .moving { position: absolute; }
+    .rotating { animation: spin 1s linear infinite; }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+<div id="header">レベル: <span id="level">1</span> / 残り時間: <span id="timer">20.0</span>s</div>
+<div id="container">
+  <div id="infoPanel">
+    <div id="targetLabel">あいつをさがせ！</div>
+    <div id="targetFace">😎</div>
+    <div id="message"></div>
+  </div>
+  <div id="game"></div>
+</div>
+
+<script>
+const allFaces = ['😎','😃','😐','😡','😂','😏','🥸','🤓','😇','😈','😍','😅','😴','🤯','😬','😵','👽','👻','👺','🤡','💀','😺','🙃','😲','😤'];
+let level = 1;
+let interval;
+let targetEmoji = '';
+let timeExpired = false;
+
+function getLevelData(lv) {
+  let faceCount = 25 + (lv - 1) * 2;
+  let time = 20 - Math.floor((lv - 1) / 5) * 1;
+  if (time < 5) time = 5;
+  let move = lv >= 10;
+  let rotate = lv >= 20;
+  let faceTypes = 4 + Math.floor(lv / 10);
+  if (faceTypes > allFaces.length) faceTypes = allFaces.length;
+  return { faceCount, time, move, rotate, faceTypes };
+}
+
+function shuffle(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function startLevel() {
+  const game = document.getElementById('game');
+  const msg = document.getElementById('message');
+  const levelInfo = getLevelData(level);
+  const faceSet = shuffle(allFaces).slice(0, levelInfo.faceTypes);
+  targetEmoji = faceSet[Math.floor(Math.random() * faceSet.length)];
+  document.getElementById('targetFace').textContent = targetEmoji;
+  document.getElementById('level').textContent = level;
+  game.innerHTML = '';
+  msg.textContent = '';
+  game.style.gridTemplateColumns = `repeat(auto-fill, minmax(40px, 1fr))`;
+  timeExpired = false;
+
+  const others = faceSet.filter(f => f !== targetEmoji);
+  let pool = [];
+  for (let i = 0; i < levelInfo.faceCount - 1; i++) {
+    pool.push(others[Math.floor(Math.random() * others.length)]);
+  }
+  pool.splice(Math.floor(Math.random() * pool.length), 0, targetEmoji);
+
+  pool.forEach(emoji => {
+    const face = document.createElement('div');
+    face.textContent = emoji;
+    face.className = 'face';
+    if (levelInfo.move) {
+      face.classList.add('moving');
+      face.style.left = `${Math.random() * 90}vw`;
+      face.style.top = `${Math.random() * 70}vh`;
+      animateMove(face);
+    }
+    if (levelInfo.rotate && Math.random() < 0.2) {
+      face.classList.add('rotating');
+    }
+    face.onclick = () => {
+      if (emoji === targetEmoji) {
+        if (timeExpired) {
+          msg.textContent = '時間切れ！⏰ 次へは進めません';
+        } else {
+          msg.textContent = '正解！🎉';
+          clearInterval(interval);
+          setTimeout(() => {
+            level++;
+            startLevel();
+          }, 1000);
+        }
+      } else {
+        msg.textContent = '違う！😵';
+      }
+    };
+    game.appendChild(face);
+  });
+
+  let timeLeft = levelInfo.time;
+  document.getElementById('timer').textContent = timeLeft.toFixed(1);
+  interval = setInterval(() => {
+    timeLeft -= 0.1;
+    document.getElementById('timer').textContent = timeLeft.toFixed(1);
+    if (timeLeft <= 0) {
+      clearInterval(interval);
+      timeExpired = true;
+      msg.textContent = '時間切れ！⏰ ゲームオーバー';
+    }
+  }, 100);
+}
+
+function animateMove(el) {
+  let x = parseFloat(el.style.left);
+  let y = parseFloat(el.style.top);
+  let dx = (Math.random() * 2 - 1) * 0.3;
+  let dy = (Math.random() * 2 - 1) * 0.3;
+  function move() {
+    x += dx;
+    y += dy;
+    if (x < 0 || x > 95) dx = -dx;
+    if (y < 0 || y > 85) dy = -dy;
+    el.style.left = `${x}vw`;
+    el.style.top = `${y}vh`;
+    requestAnimationFrame(move);
+  }
+  move();
+}
+
+startLevel();
+</script>
+
+</body>
+</html>
