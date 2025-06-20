@@ -40,6 +40,8 @@ let interval;
 let targetEmoji = '';
 let timeExpired = false;
 let bonusTimeNext = 0;
+let animationHandles = [];
+let timeLeft = 0;
 
 function getLevelData(lv) {
   let faceCount = 25 + (lv - 1) * 2;
@@ -65,6 +67,9 @@ function shuffle(array) {
 }
 
 function startLevel() {
+  cancelAllAnimations();
+  clearInterval(interval);
+
   const game = document.getElementById('game');
   const msg = document.getElementById('message');
   const levelInfo = getLevelData(level);
@@ -103,8 +108,9 @@ function startLevel() {
         } else {
           msg.textContent = '正解！🎉';
           clearInterval(interval);
+          cancelAllAnimations();
           if (timeLeft >= levelInfo.time - 2) {
-            bonusTimeNext = 1; // 次のレベルに+1秒
+            bonusTimeNext = 1;
           }
           setTimeout(() => {
             level++;
@@ -118,13 +124,14 @@ function startLevel() {
     game.appendChild(face);
   });
 
-  let timeLeft = levelInfo.time;
+  timeLeft = levelInfo.time;
   document.getElementById('timer').textContent = timeLeft.toFixed(1);
   interval = setInterval(() => {
     timeLeft -= 0.1;
     document.getElementById('timer').textContent = timeLeft.toFixed(1);
     if (timeLeft <= 0) {
       clearInterval(interval);
+      cancelAllAnimations();
       timeExpired = true;
       msg.textContent = '時間切れ！⏰ ゲームオーバー';
     }
@@ -143,9 +150,15 @@ function animateMove(el) {
     if (y < 0 || y > 90) dy = -dy;
     el.style.left = `${x}%`;
     el.style.top = `${y}%`;
-    requestAnimationFrame(move);
+    const id = requestAnimationFrame(move);
+    animationHandles.push(id);
   }
   move();
+}
+
+function cancelAllAnimations() {
+  animationHandles.forEach(id => cancelAnimationFrame(id));
+  animationHandles = [];
 }
 
 startLevel();
